@@ -1,0 +1,84 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(ggplot2)
+library(magrittr)
+library(leaflet)
+library(tidycensus)
+library(tigris)
+library(sf)
+library(acs)
+```
+
+
+
+```{r}
+shp<-st_read("C:/Users/kenin/Downloads/Blocks_Boston_2010_BARI/Blocks_Boston BARI.shp")
+str(shp)
+map<-merge(data,shp,by='Blk_ID_10',all.x=TRUE)
+```
+
+
+```{r}
+map1<-na.omit(map)
+ggplot(map1,aes(x=map1$ISD_Nbhd,y=map1$Hangout_Weight))+geom_col()+ xlab("Neighborhoods")+ylab("Hangout_Weight")+ggtitle("Hangout Index of Boston Neighborhoods")+theme(axis.text.x = element_text(angle=45,hjust = 1))
+```
+
+```{r}
+food<-filter(map1,Hangout_Variable=="hangout_food")
+shopping<-filter(map1,Hangout_Variable=="hangout_shopping")
+environment<-filter(map1,Hangout_Variable=="hangout_environment")
+
+foods<-aggregate(food$Hangout_Variable ~ food$ISD_Nbhd, data=food, FUN=length)
+colnames(foods)=c("neighborhood","hangout_food")
+
+shoppings<-aggregate(shopping$Hangout_Variable ~ shopping$ISD_Nbhd, data=shopping, FUN=length)
+colnames(shoppings)=c("neighborhood","hangout_shopping")
+
+environments<-aggregate(environment$Hangout_Variable ~ environment$ISD_Nbhd, data=environment, FUN=length)
+colnames(environments)=c("neighborhood","hangout_environment")
+
+data1<-merge(foods,shoppings, by= "neighborhood",all=TRUE)
+data2<-merge(data1,environments, by= "neighborhood", all=TRUE)
+
+neighborhood<-group_by(map1,ISD_Nbhd)
+total<-summarise(neighborhood,count=n())
+colnames(total)<-c("neighborhood","total")
+
+```
+
+```{r}
+map3<-subset(map1,Hangout_Variable=="hangout_food"|Hangout_Variable=="hangout_shopping"|Hangout_Variable=="hangout_environment")
+ggplot(map3)+
+  geom_bar(aes(x=map3$ISD_Nbhd,fill=Hangout_Variable))+
+    xlab("Neighborhoods")+ylab("Variables")+ggtitle("Hangout Variables of Boston Neighborhoods")+
+    theme(axis.text.x=element_text(angle=45,hjust=1))
+```
+
+
+```{r}
+names(data2)[1]<-c("ISD_Nbhd")
+map2<-merge(data2,shp,by="ISD_Nbhd",all.x = TRUE)
+```
+
+```{r}
+ggplot(map2,aes(geometry=geometry))+geom_sf(aes(fill=hangout_food),color="lightyellow")
+```
+
+```{r}
+ggplot(map2,aes(geometry=geometry))+geom_sf(aes(fill=hangout_shopping),color="lightyellow")
+```
+
+
+```{r}
+ggplot(map2,aes(geometry=geometry))+geom_sf(aes(fill=hangout_environment),color="lightyellow")
+```
+
